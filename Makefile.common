@@ -1,0 +1,32 @@
+CC = arm-none-eabi-gcc
+LD = arm-none-eabi-ld
+OBJCOPY = arm-none-eabi-objcopy
+
+CFLAGS = -c -fno-common -g -mcpu=cortex-m3 -mthumb 
+LDFLAGS = -nostartfiles -static -L$(BASE_DIR)/sys/
+OBJCOPY_FLAGS = -Obinary
+#LIBDEPS = -lc
+
+LDSCRIPT = stm32f103x8.ld
+
+OBJS = $(BINARY).o
+OBJS += vectors.o startup.o
+
+VPATH = $(BASE_DIR)/sys/
+
+all: bin
+
+bin: $(BINARY).bin
+elf: $(BINARY).elf
+
+%.bin: %.elf
+	$(OBJCOPY) $(OBJCOPY_FLAGS) $< $@ 
+
+%.elf: $(OBJS)
+	$(LD) $(OBJS) $(LDFLAGS) -T$(LDSCRIPT) $(LIBDEPS) -o $@
+
+%.o: %.c 
+	$(CC) $(CFLAGS) $< -o $@
+
+clean:
+	rm -rf *.bin *.elf *.o
