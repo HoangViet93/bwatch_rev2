@@ -1,32 +1,30 @@
 CC = arm-none-eabi-gcc
 LD = arm-none-eabi-ld
 OBJCOPY = arm-none-eabi-objcopy
+SIZE = arm-none-eabi-size
 
-CFLAGS = -c -fno-common -g -mcpu=cortex-m3 -mthumb 
+CFLAGS = -c -fno-common -O0 -g -mcpu=cortex-m3 -mthumb 
 LDFLAGS = -nostartfiles -static -L$(BASE_DIR)/sys/
 OBJCOPY_FLAGS = -Obinary
-#LIBDEPS = -lc
 
 LDSCRIPT = stm32f103x8.ld
+OPENOCD_CFG = $(BASE_DIR)/sys/openocd.cfg
 
 OBJS = $(BINARY).o
-OBJS += vectors.o startup.o
-
-VPATH = $(BASE_DIR)/sys/
+include $(BASE_DIR)/Makefile.include
 
 all: bin
+	$(SIZE) $(BINARY).elf
 
 bin: $(BINARY).bin
 elf: $(BINARY).elf
 
-%.bin: %.elf
-	$(OBJCOPY) $(OBJCOPY_FLAGS) $< $@ 
+include $(BASE_DIR)/rules.mk
 
-%.elf: $(OBJS)
-	$(LD) $(OBJS) $(LDFLAGS) -T$(LDSCRIPT) $(LIBDEPS) -o $@
-
-%.o: %.c 
-	$(CC) $(CFLAGS) $< -o $@
+flash:
+	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).elf
 
 clean:
 	rm -rf *.bin *.elf *.o
+
+.SECONDARY: $(OBJS)
