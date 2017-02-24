@@ -3,7 +3,7 @@
 extern void _estack(void);
 extern void reset_handler(void);
 
-void error_handler(void)
+static void error_handler(void)
 {
 	while(1);
 }

@@ -1,3 +1,5 @@
 *.elf
 *.bin
 *.o
+*.hex
+*.swp

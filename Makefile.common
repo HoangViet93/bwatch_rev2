@@ -1,10 +1,10 @@
 CC = arm-none-eabi-gcc
-LD = arm-none-eabi-ld
+LD = arm-none-eabi-gcc
 OBJCOPY = arm-none-eabi-objcopy
 SIZE = arm-none-eabi-size
 
-CFLAGS = -c -fno-common -O0 -g -mcpu=cortex-m3 -mthumb 
-LDFLAGS = -nostartfiles -static -L$(BASE_DIR)/sys/
+CFLAGS = -c -fno-common -O0 -g -mcpu=cortex-m3 -mthumb -specs=nano.specs 
+LDFLAGS = -nostartfiles -specs=nano.specs -static -L$(BASE_DIR)/sys/
 OBJCOPY_FLAGS = -Obinary
 
 LDSCRIPT = stm32f103x8.ld
@@ -13,18 +13,21 @@ OPENOCD_CFG = $(BASE_DIR)/sys/openocd.cfg
 OBJS = $(BINARY).o
 include $(BASE_DIR)/Makefile.include
 
-all: bin
+INCLUDE_PATH = $(BASE_DIR)/include
+
+all: hex 
 	$(SIZE) $(BINARY).elf
 
+hex: $(BINARY).hex
 bin: $(BINARY).bin
 elf: $(BINARY).elf
 
 include $(BASE_DIR)/rules.mk
 
 flash:
-	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).elf
+	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).hex
 
 clean:
-	rm -rf *.bin *.elf *.o
+	rm -rf *.bin *.elf *.o *.hex
 
 .SECONDARY: $(OBJS)
