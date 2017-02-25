@@ -13,7 +13,7 @@ OPENOCD_CFG = $(BASE_DIR)/sys/openocd.cfg
 OBJS = $(BINARY).o
 include $(BASE_DIR)/Makefile.include
 
-INCLUDE_PATH = $(BASE_DIR)/include
+INCLUDE_PATH += -I$(BASE_DIR)/include
 
 all: hex 
 	$(SIZE) $(BINARY).elf
@@ -23,6 +23,9 @@ bin: $(BINARY).bin
 elf: $(BINARY).elf
 
 include $(BASE_DIR)/rules.mk
+
+lib:
+	$(MAKE) -C $(LIB_OPENCM3_DIR)
 
 flash:
 	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).hex

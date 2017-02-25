@@ -1,1 +1,2 @@
 include $(BASE_DIR)/sys/Makefile
+include $(BASE_DIR)/lib/Makefile

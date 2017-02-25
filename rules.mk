@@ -8,4 +8,4 @@
 	$(LD) $(OBJS) $(LDFLAGS) -T$(LDSCRIPT) $(LIBDEPS) -o $@
 
 %.o: %.c 
-	$(CC) $(CFLAGS) -I$(INCLUDE_PATH) $< -o $@
+	$(CC) $(CFLAGS) $(INCLUDE_PATH) $< -o $@
