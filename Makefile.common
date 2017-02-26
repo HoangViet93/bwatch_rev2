@@ -1,3 +1,5 @@
+# Variables
+#-------------------------------------------------------------------------------
 CC = arm-none-eabi-gcc
 LD = arm-none-eabi-gcc
 OBJCOPY = arm-none-eabi-objcopy
@@ -5,16 +7,19 @@ SIZE = arm-none-eabi-size
 
 CFLAGS = -c -fno-common -O0 -g -mcpu=cortex-m3 -mthumb -specs=nano.specs 
 LDFLAGS = -nostartfiles -specs=nano.specs -static -L$(BASE_DIR)/sys/
-OBJCOPY_FLAGS = -Obinary
 
 LDSCRIPT = stm32f103x8.ld
 OPENOCD_CFG = $(BASE_DIR)/sys/openocd.cfg
 
 OBJS = $(BINARY).o
+INCLUDE_PATH += -I$(BASE_DIR)/include
+# Variable config from other makefile
 include $(BASE_DIR)/Makefile.include
 
 INCLUDE_PATH += -I$(BASE_DIR)/include
 
+# Target
+#-------------------------------------------------------------------------------
 all: hex 
 	$(SIZE) $(BINARY).elf
 
@@ -22,6 +27,7 @@ hex: $(BINARY).hex
 bin: $(BINARY).bin
 elf: $(BINARY).elf
 
+# Make rules
 include $(BASE_DIR)/rules.mk
 
 lib:
@@ -33,4 +39,5 @@ flash:
 clean:
 	rm -rf *.bin *.elf *.o *.hex
 
+#-------------------------------------------------------------------------------
 .SECONDARY: $(OBJS)

@@ -1,5 +1,5 @@
 %.bin: %.elf
-	$(OBJCOPY) $(OBJCOPY_FLAGS) $< $@ 
+	$(OBJCOPY) -O binary $< $@ 
 
 %.hex: %.elf
 	$(OBJCOPY) -O ihex $< $@ 
