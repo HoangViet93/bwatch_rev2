@@ -1,2 +1,2 @@
-OBJS += startup.o vectors.o system.o syscalls.o
+OBJS += system.o
 VPATH += $(BASE_DIR)/sys/

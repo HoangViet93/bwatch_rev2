@@ -5,18 +5,29 @@ LD = arm-none-eabi-gcc
 OBJCOPY = arm-none-eabi-objcopy
 SIZE = arm-none-eabi-size
 
-CFLAGS = -c -fno-common -O0 -g -mcpu=cortex-m3 -mthumb -specs=nano.specs 
-LDFLAGS = -nostartfiles -specs=nano.specs -static -L$(BASE_DIR)/sys/
+ARCH_FLAG += -mthumb -mcpu=cortex-m3 -msoft-float -mfix-cortex-m3-ldrd
+NEWLIB_SUPPORT = -specs=nano.specs -specs=nosys.specs
+
+CFLAGS += -c -fno-common -Os -std=c99 -g $(ARCH_FLAG) \
+		  -Wextra -Wshadow -Wimplicit-function-declaration -Wredundant-decls -MD \
+		  -Wstrict-prototypes -ffunction-sections -fdata-sections -Wall -Wundef 
+
+LDFLAGS += --static -nostartfiles $(ARCH_FLAG) $(NEWLIB_SUPPORT) \
+           -Wl,-Map=timer.map -Wl,--gc-sections  \
+           -L$(BASE_DIR)/sys/ -Wl,--start-group $(LIBDEPS) -Wl,--end-group
 
 LDSCRIPT = stm32f103x8.ld
 OPENOCD_CFG = $(BASE_DIR)/sys/openocd.cfg
 
-OBJS = $(BINARY).o
+OBJS += $(BINARY).o
 INCLUDE_PATH += -I$(BASE_DIR)/include
+
 # Variable config from other makefile
 include $(BASE_DIR)/Makefile.include
 
-INCLUDE_PATH += -I$(BASE_DIR)/include
+# Get global define
+DEFS += $(foreach CONFIG,$(CONFIG),-D$(CONFIG))
+CFLAGS += $(DEFS)
 
 # Target
 #-------------------------------------------------------------------------------
@@ -34,10 +45,10 @@ lib:
 	$(MAKE) -C $(LIB_OPENCM3_DIR)
 
 flash:
-	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).hex
+	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).elf
 
 clean:
-	rm -rf *.bin *.elf *.o *.hex
+	rm -rf *.bin *.elf *.o *.hex *.d *.map
 
 #-------------------------------------------------------------------------------
 .SECONDARY: $(OBJS)

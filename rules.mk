@@ -5,7 +5,7 @@
 	$(OBJCOPY) -O ihex $< $@ 
 
 %.elf: $(OBJS) $(LDSCRIPT)
-	$(LD) $(OBJS) $(LDFLAGS) -T$(LDSCRIPT) $(LIBDEPS) -o $@
+	$(LD) $(OBJS) $(LDFLAGS) -T$(LDSCRIPT) -o $@
 
 %.o: %.c 
 	$(CC) $(CFLAGS) $(INCLUDE_PATH) $< -o $@

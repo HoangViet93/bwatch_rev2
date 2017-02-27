@@ -37,7 +37,7 @@ int main()
     }
 }
  
-void delay(unsigned long count)
+void delay(volatile unsigned long count)
 {
     while(count--);
 }

@@ -3,3 +3,7 @@
 *.o
 *.hex
 *.swp
+tags
+cscope.out
+*.d
+*.map

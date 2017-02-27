@@ -1,52 +1,71 @@
-#include "stm32f103xb.h"
+#include "libopencm3/stm32/rcc.h"
+#include "libopencm3/stm32/gpio.h"
+#include "libopencm3/stm32/usart.h"
 
-/* This function is straight from the system_stm32f10x.c library file and
- * is called within the startup file:
- * 1. After each device reset the HSI is used as System clock source.
- * 2. This function assumes that an external 8MHz crystal is used to drive the System clock.
- */
+#if defined(CONFIG_LED_B2)
+static void led_init(void);
+#endif
+
+#if defined(CONFIG_UART_PRINTF)
+static void uart_stdio_init(void);
+int _write(int file, char *ptr, int len);
+#endif
+
 void system_init(void)
 {
-    /* Reset the RCC clock configuration to the default reset state */
-    /* Set HSION bit */
-    RCC->CR |= (uint32_t)0x00000001;
-    /* Reset SW, HPRE, PPRE1, PPRE2, ADCPRE and MCO bits */
-    RCC->CFGR &= (uint32_t)0xF8FF0000;
-    /* Reset HSEON, CSSON and PLLON bits */
-    RCC->CR &= (uint32_t)0xFEF6FFFF;
-    /* Reset HSEBYP bit */
-    RCC->CR &= (uint32_t)0xFFFBFFFF;
-    /* Disable all interrupts and clear pending bits  */
-    RCC->CIR = 0x009F0000;
-    /* Enable HSE */
-    RCC->CR |= ((uint32_t)RCC_CR_HSEON);
-    /* Wait till HSE is ready */
-    do
-    {
-    } while ((RCC->CR & RCC_CR_HSERDY) == 0);
-    /* Configure the Flash Latency cycles and enable prefetch buffer */
-    FLASH->ACR = FLASH_ACR_PRFTBE | FLASH_ACR_LATENCY_2;
-    /* Configure the System clock frequency, HCLK, PCLK2 and PCLK1 prescalers */
-    /* HCLK = SYSCLK, PCLK2 = HCLK, PCLK1 = HCLK / 2
-     * If crystal is 16MHz, add in PLLXTPRE flag to prescale by 2
-     */
-    RCC->CFGR = (uint32_t)( RCC_CFGR_HPRE_DIV1  |
-                            RCC_CFGR_PPRE2_DIV1 |
-                            RCC_CFGR_PPRE1_DIV2 |
-                            RCC_CFGR_PLLSRC_PREDIV1 |
-                            RCC_CFGR_PLLMULL9 );
-    /* Enable PLL */
-    RCC->CR |= RCC_CR_PLLON;
-    /* Wait till PLL is ready */
-    while ((RCC->CR & RCC_CR_PLLRDY) == 0)
-    {
-    }
-    /* Select PLL as system clock source */
-    RCC->CFGR |= (uint32_t)RCC_CFGR_SW_PLL;
-    /* Wait till PLL is used as system clock source */
-    while ((RCC->CFGR & (uint32_t)RCC_CFGR_SWS) != (uint32_t)0x08)
-    {
-    }
-    /* Vector Table Relocation in Internal FLASH. */
-    SCB->VTOR = FLASH_BASE;
+	rcc_clock_setup_in_hse_8mhz_out_72mhz();
+
+#if defined(CONFIG_LED_B2)
+	led_init();
+#endif
+
+#if defined(CONFIG_UART_PRINTF)
+	uart_stdio_init();
+#endif
 }
+
+#if defined(CONFIG_LED_B2)
+static void led_init(void)
+{
+	rcc_periph_clock_enable(RCC_GPIOB);
+
+	gpio_set_mode(GPIOB, GPIO_MODE_OUTPUT_50_MHZ, 
+				  GPIO_CNF_OUTPUT_PUSHPULL, GPIO2);
+}
+#endif
+
+#if defined(CONFIG_UART_PRINTF)
+static void uart_stdio_init(void)
+{
+	rcc_periph_clock_enable(RCC_AFIO);
+	rcc_periph_clock_enable(RCC_GPIOA);
+	rcc_periph_clock_enable(RCC_USART1);
+
+	gpio_set_mode(GPIOA, GPIO_MODE_OUTPUT_50_MHZ, 
+				  GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO9);
+	gpio_set_mode(GPIOA, GPIO_MODE_INPUT, 
+				  GPIO_CNF_OUTPUT_ALTFN_PUSHPULL, GPIO10);
+	
+	usart_set_baudrate(USART1, 115200);
+	usart_set_databits(USART1, 8);
+	usart_set_stopbits(USART1, USART_STOPBITS_1);
+	usart_set_mode(USART1, USART_MODE_TX_RX);
+	usart_set_parity(USART1, USART_PARITY_NONE);
+	usart_set_flow_control(USART1, USART_FLOWCONTROL_NONE);
+	usart_enable(USART1);
+}
+
+int _write(int file, char *ptr, int len)
+{
+	int i = 0;
+
+	if (1 == file) 
+	{
+		for (i = 0; i < len; i++)
+		{
+			usart_send_blocking(USART1, ptr[i]);
+		}
+	}
+	return len;
+}
+#endif

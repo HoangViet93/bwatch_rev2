@@ -4,15 +4,17 @@
 #include "string.h"
 #include "stdio.h"
 #include "errno.h"
+#include "system.h"
 
 static void usart_setup(void);
 static void clock_setup(void);
-static void delay(uint32_t count);
+void delay(volatile uint32_t count);
 static void led_setup(void);
+static void send_data(char *str);
 
 int main(void)
 {
-	int count = 0;
+	system_init();
 
 	clock_setup();
 	usart_setup();
@@ -20,30 +22,24 @@ int main(void)
 
 	while(1)
 	{
-		count++;
 		gpio_toggle(GPIOB, GPIO2);
-		printf("hello-world count=%d\r\n", count);
+		send_data("hello-world\r\n");
 		delay(2000000);
 	}
 }
 
-int _write(int file, char *ptr, int len)
+static void send_data(char *str)
 {
 	int i = 0;
 
-	if (1 == file) 
+	for (i = 0; i < (int)strlen(str); i++)
 	{
-		for (i = 0; i < len; i++)
-		{
-			usart_send_blocking(USART1, ptr[i]);
-		}
+		usart_send_blocking(USART1, str[i]);
 	}
-	return len;
 }
 
 static void clock_setup(void)
 {
-	rcc_clock_setup_in_hse_8mhz_out_72mhz();
 	rcc_periph_clock_enable(RCC_AFIO);
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_GPIOA);
@@ -72,7 +68,7 @@ static void usart_setup(void)
 	usart_enable(USART1);
 }
 
-static void delay(volatile uint32_t count)
+void delay(volatile uint32_t count)
 {
 	while(count)
 	{
