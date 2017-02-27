@@ -9,11 +9,11 @@ ARCH_FLAG += -mthumb -mcpu=cortex-m3 -msoft-float -mfix-cortex-m3-ldrd
 NEWLIB_SUPPORT = -specs=nano.specs -specs=nosys.specs
 
 CFLAGS += -c -fno-common -Os -std=c99 -g $(ARCH_FLAG) \
-		  -Wextra -Wshadow -Wimplicit-function-declaration -Wredundant-decls -MD \
+		  -Wextra -Wshadow -Wimplicit-function-declaration -Wredundant-decls \
 		  -Wstrict-prototypes -ffunction-sections -fdata-sections -Wall -Wundef 
 
 LDFLAGS += --static -nostartfiles $(ARCH_FLAG) $(NEWLIB_SUPPORT) \
-           -Wl,-Map=timer.map -Wl,--gc-sections  \
+           -Wl,-Map=program.map -Wl,--gc-sections  \
            -L$(BASE_DIR)/sys/ -Wl,--start-group $(LIBDEPS) -Wl,--end-group
 
 LDSCRIPT = stm32f103x8.ld
@@ -29,10 +29,17 @@ include $(BASE_DIR)/Makefile.include
 DEFS += $(foreach CONFIG,$(CONFIG),-D$(CONFIG))
 CFLAGS += $(DEFS)
 
+BINARY_PATH = ./bin/
+OBJS_PATH := $(addprefix $(BINARY_PATH), $(OBJS))
+
 # Target
 #-------------------------------------------------------------------------------
-all: hex 
-	$(SIZE) $(BINARY).elf
+all: bin_dir hex 
+	echo $(OBJS_PATH)
+	$(SIZE) $(BINARY_PATH)$(BINARY).elf
+
+bin_dir:
+	mkdir -p bin
 
 hex: $(BINARY).hex
 bin: $(BINARY).bin
@@ -45,7 +52,7 @@ lib:
 	$(MAKE) -C $(LIB_OPENCM3_DIR)
 
 flash:
-	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY).elf
+	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY_PATH)$(BINARY).elf
 
 clean:
 	rm -rf *.bin *.elf *.o *.hex *.d *.map
