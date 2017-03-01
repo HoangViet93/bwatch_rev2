@@ -69,3 +69,11 @@ int _write(int file, char *ptr, int len)
 	return len;
 }
 #endif
+
+#if defined(CONFIG_FREERTOS)
+void sys_tick_handler(void)
+{
+	osSystickHandler();
+}
+#endif
+

@@ -8,12 +8,12 @@ SIZE = arm-none-eabi-size
 ARCH_FLAG += -mthumb -mcpu=cortex-m3 -msoft-float -mfix-cortex-m3-ldrd
 NEWLIB_SUPPORT = -specs=nano.specs -specs=nosys.specs
 
-CFLAGS += -c -fno-common -Os -std=c99 -g $(ARCH_FLAG) \
+CFLAGS += -c -fno-common -Os -std=c99 -g $(ARCH_FLAG) -MD\
 		  -Wextra -Wshadow -Wimplicit-function-declaration -Wredundant-decls \
-		  -Wstrict-prototypes -ffunction-sections -fdata-sections -Wall -Wundef 
+		  -Wstrict-prototypes -ffunction-sections -fdata-sections -Wall 
 
 LDFLAGS += --static -nostartfiles $(ARCH_FLAG) $(NEWLIB_SUPPORT) \
-           -Wl,-Map=program.map -Wl,--gc-sections  \
+           -Wl,-Map=$(BINARY_PATH)$(BINARY).map -Wl,--gc-sections  \
            -L$(BASE_DIR)/sys/ -Wl,--start-group $(LIBDEPS) -Wl,--end-group
 
 LDSCRIPT = stm32f103x8.ld
@@ -30,12 +30,12 @@ DEFS += $(foreach CONFIG,$(CONFIG),-D$(CONFIG))
 CFLAGS += $(DEFS)
 
 BINARY_PATH = ./bin/
+VPATH += bin
 OBJS_PATH := $(addprefix $(BINARY_PATH), $(OBJS))
 
 # Target
 #-------------------------------------------------------------------------------
 all: bin_dir hex 
-	echo $(OBJS_PATH)
 	$(SIZE) $(BINARY_PATH)$(BINARY).elf
 
 bin_dir:
@@ -49,13 +49,23 @@ elf: $(BINARY).elf
 include $(BASE_DIR)/rules.mk
 
 lib:
-	$(MAKE) -C $(LIB_OPENCM3_DIR)
+	$(MAKE) --silent -C $(LIB_OPENCM3_DIR)
+	$(MAKE) --silent -C $(LIB_FREERTOS_DIR)
 
 flash:
 	$(BASE_DIR)/tool/openocd_flash.sh $(OPENOCD_CFG) $(BINARY_PATH)$(BINARY).elf
 
 clean:
-	rm -rf *.bin *.elf *.o *.hex *.d *.map
+	rm -rf *.bin *.elf *.o *.hex *.d *.map bin
 
+cleanall:
+	rm -rf *.bin *.elf *.o *.hex *.d *.map bin
+	$(MAKE) clean -C $(LIB_OPENCM3_DIR)
+	$(MAKE) clean -C $(LIB_FREERTOS_DIR)
+
+# include auto-dependencies
+-include $(OBJS_PATH:.o=.d)
+	
+# Other rules	
 #-------------------------------------------------------------------------------
 .SECONDARY: $(OBJS)
