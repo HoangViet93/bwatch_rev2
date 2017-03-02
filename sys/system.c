@@ -1,9 +1,17 @@
 #include "libopencm3/stm32/rcc.h"
 #include "libopencm3/stm32/gpio.h"
 #include "libopencm3/stm32/usart.h"
+#include "libopencm3/cm3/systick.h"
+
+volatile uint32_t tick_count = 0;
 
 #if defined(CONFIG_LED_B2)
 static void led_init(void);
+#endif
+
+#if defined(CONFIG_DELAYMS)
+void delay_ms(volatile uint32_t milis);
+void systick_init(void);
 #endif
 
 #if defined(CONFIG_UART_PRINTF)
@@ -21,6 +29,10 @@ void system_init(void)
 
 #if defined(CONFIG_UART_PRINTF)
 	uart_stdio_init();
+#endif
+
+#if defined(CONFIG_DELAYMS)
+	systick_init();
 #endif
 }
 
@@ -70,10 +82,29 @@ int _write(int file, char *ptr, int len)
 }
 #endif
 
-#if defined(CONFIG_FREERTOS)
+#if defined(CONFIG_FREERTOS) || defined(CONFIG_DELAYMS)
 void sys_tick_handler(void)
 {
+	tick_count++;
+#if defined(CONFIG_FREERTOS)
 	osSystickHandler();
-}
 #endif
+}
+#endif 
 
+#if defined(CONFIG_DELAYMS)
+void delay_ms(volatile uint32_t milis)
+{
+	uint32_t curr_count = tick_count;
+	while ((tick_count - curr_count) < milis);
+}
+
+void systick_init(void)
+{
+	systick_set_clocksource(STK_CSR_CLKSOURCE_AHB_DIV8);
+	systick_set_reload(9000 - 1);
+	systick_interrupt_enable();
+	systick_counter_enable();
+	//printf("%s : %d", __FUNCTION__, __LINE__);
+}
+#endif 

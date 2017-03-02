@@ -23,4 +23,8 @@ static inline void led_b2_toggle(void)
 }
 #endif
 
+#if defined(CONFIG_DELAYMS)
+void delay_ms(volatile uint32_t milis);
+#endif
+
 #endif
