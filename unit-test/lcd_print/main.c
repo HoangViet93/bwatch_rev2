@@ -11,9 +11,9 @@ static void clock_setup(void);
 
 const struct font normal_text = 
 {
-	.width = 15,
-	.height = 16,
-	.data = arial_15x16,
+	.width = 7,
+	.height = 13,
+	.data = DejaVu_Sans_Mono7x13,
 	.text_color = WHITE,
 	.bkg_color = BLACK
 };
@@ -44,7 +44,7 @@ int main(void)
 	ili9163_init(&ili_conf);
 	ili9163_set_screen(&ili_conf, 0x0000);
 	
-	ili9163_print(&ili_conf, 0, 0, "hello", &normal_text);
+	ili9163_print(&ili_conf, 0, 0, "1234567890", &normal_text);
 
 	while (1)
 	{
