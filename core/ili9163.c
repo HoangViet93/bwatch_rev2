@@ -3,6 +3,8 @@
 #include "libopencm3/stm32/rcc.h"
 #include "libopencm3/stm32/spi.h"
 #include "system.h"
+#include "stdlib.h"
+#include "string.h"
 
 static void ili9163_init_communication(const struct ili9163 *conf);
 static void ili9163_init_chip(const struct ili9163 *conf);
@@ -114,7 +116,7 @@ ili9163_init_chip(const struct ili9163 *conf)
 	ili9163_write_byte(conf, 0x1A);
 	
 	ili9163_write_reg(conf, 0x36); 
-	ili9163_write_byte(conf, 0xC8);
+	ili9163_write_byte(conf, 0x08);
 	
 	/* gamma configuration */
 	ili9163_write_reg(conf, 0xE0);
@@ -172,8 +174,8 @@ ili9163_set_address(const struct ili9163 *conf,
 	ili9163_write_word(conf, x2);
 
 	ili9163_write_reg(conf, 0x2B);
-	ili9163_write_word(conf, 32 + y1);
-	ili9163_write_word(conf, 32 + y2);
+	ili9163_write_word(conf, y1);
+	ili9163_write_word(conf, y2);
 
 	ili9163_write_reg(conf, 0x2C);
 }
@@ -214,33 +216,293 @@ ili9163_draw_pic(const struct ili9163 *conf, uint16_t x, uint16_t y,
 	return 0;
 }
 
+int8_t
+ili9163_draw_pixel(const struct ili9163 *conf, int16_t x, int16_t y, 
+				   uint16_t color)
+{
+	if (x >= conf->lcd_x_size || y >= conf->lcd_y_size 
+		|| x < 0 || y < 0)
+	{
+		return -1;
+	}
+
+	ili9163_set_address(conf, x, x + 1, y, y + 1);
+	ili9163_write_word(conf, color);
+
+	return 0;
+}
+
+static inline void 
+_swap_int16_t(int16_t *a, int16_t *b)
+{
+	int16_t temp = *a;
+	*a = *b;
+	*b = temp;
+}
+
+/* bresenham's algorithm */
+int8_t
+ili9163_draw_line(const struct ili9163 *conf, int16_t x0, int16_t y0,
+				  int16_t x1, int16_t y1, uint16_t color)
+{
+	int16_t steep = 0;
+	int16_t dx, dy;
+	int16_t error, y_step;
+
+	if (x0 >= conf->lcd_x_size || y0 >= conf->lcd_y_size
+		|| x1 >= conf->lcd_x_size || y1 >= conf->lcd_y_size)
+	{
+		return -1;
+	}
+
+	steep = abs(y1 - y0) > abs(x1 - x0);
+	if (steep)
+	{
+		_swap_int16_t(&x0, &y0);
+		_swap_int16_t(&x1, &y1);
+	}
+	if (x0 > x1)
+	{
+		_swap_int16_t(&x0, &x1);
+		_swap_int16_t(&y0, &y1);
+	}
+
+	dx = x1 - x0;
+	dy = abs(y1 - y0);
+
+	error = dx / 2;
+	if (y0 < y1)
+	{
+		y_step = 1;
+	}
+	else {
+		y_step = -1;
+	}
+
+	for (; x0 <= x1; x0++)
+	{
+		if (steep) 
+		{
+			ili9163_draw_pixel(conf, y0, x0, color);
+		}
+		else 
+		{
+			ili9163_draw_pixel(conf, x0, y0, color);
+		}
+		error -= dy;
+		if (error < 0) 
+		{
+			y0 += y_step;
+			error += dx;
+		}
+	}
+
+	return 0;
+}
+
+int8_t 
+ili9163_draw_fast_vline(const struct ili9163 *conf, int16_t x, int16_t y, 
+					    int16_t height, uint16_t color)
+{
+	if (x >= conf->lcd_x_size || y >= conf->lcd_y_size)
+	{
+		return -1;
+	}
+	if ((y + height) - 1 > conf->lcd_y_size)
+	{
+		height = conf->lcd_y_size - y;
+	}
+
+	ili9163_set_address(conf, x, x, y, (y + height) - 1);
+	
+	while(height)
+	{
+		ili9163_write_word(conf, color);
+		height--;
+	}
+	return 0;
+}
+
+static void
+_ili9163_fill_circle_helper(const struct ili9163 *conf, int16_t x0, int16_t y0, 
+							int16_t r, uint8_t corner_name, 
+							int16_t delta, uint16_t color)
+{
+	int16_t f = 1 - r;
+	int16_t ddf_x = 1;
+	int16_t ddf_y = -2 * r;
+	int16_t x = 0;
+	int16_t y = r;
+
+	while (x < y)
+	{
+		if (f >= 0) 
+		{
+			y--;
+			ddf_y += 2;
+			f += ddf_y;
+		}
+		x++;
+		ddf_x += 2;
+		f += ddf_x;
+
+		if (corner_name & 0x01) 
+		{
+			ili9163_draw_fast_vline(conf, x0 + x, y0 - y, 2 * y + 1 + delta, color);
+			ili9163_draw_fast_vline(conf, x0 + y, y0 - x, 2 * x + 1 + delta, color);
+		}
+		if (corner_name & 0x02)
+		{
+			ili9163_draw_fast_vline(conf, x0 - x, y0 - y, 2 * y + 1 + delta, color);
+			ili9163_draw_fast_vline(conf, x0 - y, y0 - x, 2 * x + 1 + delta, color);
+		}
+	}
+}
+
+int8_t
+ili9163_fill_circle(const struct ili9163 *conf, int16_t x0, int16_t y0, 
+					int16_t r, uint16_t color)
+{
+	if (x0 + r >= conf->lcd_x_size || y0 + r >= conf->lcd_y_size)
+	{
+		return -1;
+	}
+	ili9163_draw_fast_vline(conf, x0, y0 - r, 2*r + 1, color);
+	_ili9163_fill_circle_helper(conf, x0, y0, r, 3, 0, color);
+
+	return 0;
+}
+
+/* I can't remember how i code it */
+int8_t
+ili9163_put_char(const struct ili9163 *conf, uint16_t x, uint16_t y,
+				 char ch, const struct font *pfont)
+{
+	uint16_t char_width, temp = 0, byte_height, start_char;
+	uint16_t x_count, y_count;
+	
+	if (x + pfont->width >= conf->lcd_x_size 
+		|| y + pfont->height >= conf->lcd_y_size)
+	{
+		return -1;
+	}
+
+	if ((pfont->height % 8) > 0)
+	{
+		byte_height = pfont->height / 8 + 1;
+	}
+	else 
+	{
+		byte_height = pfont->height / 8;
+	}
+	
+	start_char = (ch - 32) * (pfont->width * byte_height + 1) + 1;
+	char_width = pfont->data[start_char - 1];
+
+	ili9163_set_address(conf, x, x + char_width - 1, y, y + pfont->height - 1);
+
+	for (y_count = 0; y_count < pfont->height; )
+	{
+		for (x_count = 0; x_count < char_width; x_count++)
+		{
+			if ((pfont->data[start_char + (byte_height * x_count)]
+				 >> (y_count - 8 * temp)) & 0x01 )
+			{
+				ili9163_write_word(conf, pfont->text_color);
+			}
+			else 
+			{
+				ili9163_write_word(conf, pfont->bkg_color);
+			}
+		}
+		y_count++;
+		temp = y_count / 8;
+		if (y_count == 8 * temp)
+		{
+			start_char++;
+		}
+	}
+
+	return 0;
+}
+
+uint16_t 
+ili9163_print(const struct ili9163 *conf, uint16_t x, uint16_t y, 
+			  const char *str, const struct font *pfont)
+{ 
+	uint8_t len;
+	uint8_t byte_height;
+	uint16_t x1 = 0;
+	volatile uint16_t count, temp;
+
+	len = strlen(str);
+
+	if ((pfont->height % 8) > 0)
+	{
+		byte_height = pfont->height / 8 + 1;
+	}
+	else 
+	{
+		byte_height = pfont->height / 8;
+	}
+
+	for (count = 0; count < len; count++)
+	{
+		if (-1 == ili9163_put_char(conf, x + x1, y, str[count], pfont))
+		{
+			return count;
+		}
+		temp = (str[count] - 32) * (pfont->width * byte_height + 1);
+		x1 += pfont->data[temp];
+		temp = (str[count + 1] - 32) * (pfont->width * byte_height + 1);
+
+		if ((x + x1 + pfont->data[temp]) >= (conf->lcd_x_size - 1))
+		{
+			y += pfont->height;
+			x1 = 0;
+		}
+	}
+	return len;
+}
+
+
+
 /*-----------------------------------------------------------------------------*/
 
 static void
 ili9163_write_byte(const struct ili9163 *conf, uint8_t byte)
 {
 	gpio_set(conf->a0_port, conf->a0_pin);
+	gpio_clear(conf->cs_port, conf->cs_pin);
 	
 	while (!(SPI_SR(conf->spi_reg) & SPI_SR_TXE));
 	spi_xfer(conf->spi_reg, byte);
+
+	gpio_set(conf->cs_port, conf->cs_pin);
 }
 
 static void
 ili9163_write_reg(const struct ili9163 *conf, uint8_t reg)
 {
 	gpio_clear(conf->a0_port, conf->a0_pin);
+	gpio_clear(conf->cs_port, conf->cs_pin);
 	
 	while (!(SPI_SR(conf->spi_reg) & SPI_SR_TXE));
 	spi_xfer(conf->spi_reg, reg);
+
+	gpio_set(conf->cs_port, conf->cs_pin);
 }
 
 static void
 ili9163_write_word(const struct ili9163 *conf, uint16_t word)
 {
 	gpio_set(conf->a0_port, conf->a0_pin);
+	gpio_clear(conf->cs_port, conf->cs_pin);
 
 	ili9163_write_byte(conf, word >> 8);	
 	ili9163_write_byte(conf, word);
+
+	gpio_set(conf->cs_port, conf->cs_pin);
 }
 
 

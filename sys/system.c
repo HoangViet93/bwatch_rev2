@@ -105,6 +105,10 @@ void systick_init(void)
 	systick_set_reload(9000 - 1);
 	systick_interrupt_enable();
 	systick_counter_enable();
-	//printf("%s : %d", __FUNCTION__, __LINE__);
+}
+
+uint32_t get_tick(void)
+{
+	return tick_count;
 }
 #endif 

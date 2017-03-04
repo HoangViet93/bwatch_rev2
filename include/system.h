@@ -25,6 +25,7 @@ static inline void led_b2_toggle(void)
 
 #if defined(CONFIG_DELAYMS)
 void delay_ms(volatile uint32_t milis);
+uint32_t get_tick(void);
 #endif
 
 #endif
