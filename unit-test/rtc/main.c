@@ -15,6 +15,7 @@ int main(void)
 	rcc_wait_for_osc_ready(RCC_LSI);
 
 	rtc_setup();
+	rtc_set_counter_val(60536);
 
 	while (1)
 	{
