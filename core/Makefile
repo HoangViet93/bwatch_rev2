@@ -1,2 +1,5 @@
-OBJS += ili9163.o
+CORE_OBJS_$(CONFIG_USE_CORE) += ili9163.o
+ 
+OBJS += $(CORE_OBJS_Y)
+
 VPATH += $(BASE_DIR)/core
