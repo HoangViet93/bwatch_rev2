@@ -3,6 +3,9 @@
 
 #include "stdint.h"
 #include "core/graphics.h"
+#if defined(CONFIG_FREERTOS)
+#include "cmsis_os.h"
+#endif
 
 struct ili9163 {
 	uint16_t lcd_x_size;
@@ -19,6 +22,10 @@ struct ili9163 {
 
 	uint32_t spi_reg;
 };
+
+#if defined(CONFIG_FREERTOS)
+extern SemaphoreHandle_t ili9163_mutex;
+#endif
 
 void ili9163_init(const struct ili9163 *conf);
 void ili9163_set_screen(const struct ili9163 *conf, uint16_t color);

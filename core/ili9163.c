@@ -5,13 +5,20 @@
 #include "system.h"
 #include "stdlib.h"
 #include "string.h"
+#if defined(CONFIG_FREERTOS)
+#include "cmsis_os.h"
+#endif
 
 static void ili9163_init_communication(const struct ili9163 *conf);
 static void ili9163_init_chip(const struct ili9163 *conf);
 
-static void ili9163_write_byte(const struct ili9163 *conf, uint8_t byte);
-static void ili9163_write_reg(const struct ili9163 *conf, uint8_t reg);
-static void ili9163_write_word(const struct ili9163 *conf, uint16_t word);
+static void _ili9163_write_byte(const struct ili9163 *conf, uint8_t byte);
+static void _ili9163_write_reg(const struct ili9163 *conf, uint8_t reg);
+static void _ili9163_write_word(const struct ili9163 *conf, uint16_t word);
+
+#if defined(CONFIG_FREERTOS)
+SemaphoreHandle_t ili9163_mutex;
+#endif
 
 /*-----------------------------------------------------------------------------*/
 
@@ -20,6 +27,11 @@ ili9163_init(const struct ili9163 *conf)
 {
 	ili9163_init_communication(conf);
 	ili9163_init_chip(conf);
+
+#if defined(CONFIG_FREERTOS)
+	ili9163_mutex = xSemaphoreCreateMutex();
+#endif
+
 	gpio_set(conf->led_port, conf->led_pin);
 }
 
@@ -64,104 +76,102 @@ ili9163_init_chip(const struct ili9163 *conf)
 	gpio_set(conf->rst_port, conf->rst_pin);
 	delay_ms(50);
 
-	ili9163_write_reg(conf, 0x1);
+	_ili9163_write_reg(conf, 0x1);
 	delay_ms(30);
-	ili9163_write_reg(conf, 0x11);
+	_ili9163_write_reg(conf, 0x11);
 	delay_ms(120);
 	
 	/* powerup sequence*/
-	ili9163_write_reg(conf, 0xB1);
-	ili9163_write_byte(conf, 0x05);
-	ili9163_write_byte(conf, 0x3C);
-	ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_reg(conf, 0xB1);
+	_ili9163_write_byte(conf, 0x05);
+	_ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_byte(conf, 0x3C);
 
-	ili9163_write_reg(conf, 0xB2);
-	ili9163_write_byte(conf, 0x05);
-	ili9163_write_byte(conf, 0x3C);
-	ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_reg(conf, 0xB2);
+	_ili9163_write_byte(conf, 0x05);
+	_ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_byte(conf, 0x3C);
 	
-	ili9163_write_reg(conf, 0xB3);
-	ili9163_write_byte(conf, 0x05);
-	ili9163_write_byte(conf, 0x3C);
-	ili9163_write_byte(conf, 0x3C);
-	ili9163_write_byte(conf, 0x05);
-	ili9163_write_byte(conf, 0x3C);
-	ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_reg(conf, 0xB3);
+	_ili9163_write_byte(conf, 0x05);
+	_ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_byte(conf, 0x05);
+	_ili9163_write_byte(conf, 0x3C);
+	_ili9163_write_byte(conf, 0x3C);
 	
-	ili9163_write_reg(conf, 0xB4); 
-	ili9163_write_byte(conf, 0x03);
+	_ili9163_write_reg(conf, 0xB4); 
+	_ili9163_write_byte(conf, 0x03);
 	
-	ili9163_write_reg(conf, 0xC0);
-	ili9163_write_byte(conf, 0x28);
-	ili9163_write_byte(conf, 0x08);
-	ili9163_write_byte(conf, 0x04);
+	_ili9163_write_reg(conf, 0xC0);
+	_ili9163_write_byte(conf, 0x28);
+	_ili9163_write_byte(conf, 0x08);
+	_ili9163_write_byte(conf, 0x04);
 	
-	ili9163_write_reg(conf, 0xC1);
-	ili9163_write_byte(conf, 0XC0);
+	_ili9163_write_reg(conf, 0xC1);
+	_ili9163_write_byte(conf, 0XC0);
 	
-	ili9163_write_reg(conf, 0xC2);
-	ili9163_write_byte(conf, 0x0D);
-	ili9163_write_byte(conf, 0x00);
+	_ili9163_write_reg(conf, 0xC2);
+	_ili9163_write_byte(conf, 0x0D);
+	_ili9163_write_byte(conf, 0x00);
 	
-	ili9163_write_reg(conf, 0xC3);
-	ili9163_write_byte(conf, 0x8D);
-	ili9163_write_byte(conf, 0x2A);
+	_ili9163_write_reg(conf, 0xC3);
+	_ili9163_write_byte(conf, 0x8D);
+	_ili9163_write_byte(conf, 0x2A);
 	
-	ili9163_write_reg(conf, 0xC4);
-	ili9163_write_byte(conf, 0x8D);
-	ili9163_write_byte(conf, 0xEE);	
+	_ili9163_write_reg(conf, 0xC4);
+	_ili9163_write_byte(conf, 0x8D);
+	_ili9163_write_byte(conf, 0xEE);	
 	
 	/* memory access mode */
-	ili9163_write_reg(conf, 0xC5); 
-	ili9163_write_byte(conf, 0x1A);
+	_ili9163_write_reg(conf, 0xC5); 
+	_ili9163_write_byte(conf, 0x1A);
 	
-	ili9163_write_reg(conf, 0x36); 
-	ili9163_write_byte(conf, 0x08);
+	_ili9163_write_reg(conf, 0x36); 
+	_ili9163_write_byte(conf, 0x08);
 	
 	/* gamma configuration */
-	ili9163_write_reg(conf, 0xE0);
-	ili9163_write_byte(conf, 0x04);
-	ili9163_write_byte(conf, 0x22);
-	ili9163_write_byte(conf, 0x07);
-	ili9163_write_byte(conf, 0x0A);
-	ili9163_write_byte(conf, 0x2E);
-	ili9163_write_byte(conf, 0x30);
-	ili9163_write_byte(conf, 0x25);
-	ili9163_write_byte(conf, 0x2A);
-	ili9163_write_byte(conf, 0x28);
-	ili9163_write_byte(conf, 0x26);
-	ili9163_write_byte(conf, 0x2E);
-	ili9163_write_byte(conf, 0x3A);
-	ili9163_write_byte(conf, 0x00);
-	ili9163_write_byte(conf, 0x01);
-	ili9163_write_byte(conf, 0x03);
-	ili9163_write_byte(conf, 0x13);
+	_ili9163_write_reg(conf, 0xE0);
+	_ili9163_write_byte(conf, 0x04);
+	_ili9163_write_byte(conf, 0x22);
+	_ili9163_write_byte(conf, 0x07);
+	_ili9163_write_byte(conf, 0x0A);
+	_ili9163_write_byte(conf, 0x2E);
+	_ili9163_write_byte(conf, 0x30);
+	_ili9163_write_byte(conf, 0x25);
+	_ili9163_write_byte(conf, 0x2A);
+	_ili9163_write_byte(conf, 0x28);
+	_ili9163_write_byte(conf, 0x26);
+	_ili9163_write_byte(conf, 0x2E);
+	_ili9163_write_byte(conf, 0x3A);
+	_ili9163_write_byte(conf, 0x00);
+	_ili9163_write_byte(conf, 0x01);
+	_ili9163_write_byte(conf, 0x03);
+	_ili9163_write_byte(conf, 0x13);
 	
-	ili9163_write_reg(conf, 0xE1);
-	ili9163_write_byte(conf, 0x04);
-	ili9163_write_byte(conf, 0x16);
-	ili9163_write_byte(conf, 0x06);
-	ili9163_write_byte(conf, 0x0D);
-	ili9163_write_byte(conf, 0x2D);
-	ili9163_write_byte(conf, 0x26);
-	ili9163_write_byte(conf, 0x23);
-	ili9163_write_byte(conf, 0x27);
-	ili9163_write_byte(conf, 0x27);
-	ili9163_write_byte(conf, 0x25);
-	ili9163_write_byte(conf, 0x2D);
-	ili9163_write_byte(conf, 0x3B);
-	ili9163_write_byte(conf, 0x00);
-	ili9163_write_byte(conf, 0x01);
-	ili9163_write_byte(conf, 0x04);
-	ili9163_write_byte(conf, 0x13);
+	_ili9163_write_reg(conf, 0xE1);
+	_ili9163_write_byte(conf, 0x04);
+	_ili9163_write_byte(conf, 0x16);
+	_ili9163_write_byte(conf, 0x06);
+	_ili9163_write_byte(conf, 0x0D);
+	_ili9163_write_byte(conf, 0x2D);
+	_ili9163_write_byte(conf, 0x26);
+	_ili9163_write_byte(conf, 0x23);
+	_ili9163_write_byte(conf, 0x27);
+	_ili9163_write_byte(conf, 0x27);
+	_ili9163_write_byte(conf, 0x25);
+	_ili9163_write_byte(conf, 0x2D);
+	_ili9163_write_byte(conf, 0x3B);
+	_ili9163_write_byte(conf, 0x00);
+	_ili9163_write_byte(conf, 0x01);
+	_ili9163_write_byte(conf, 0x04);
+	_ili9163_write_byte(conf, 0x13);
 	
 	/* dipslay config */
-	ili9163_write_reg(conf, 0x3A);
-	ili9163_write_byte(conf, 0x05);
-	ili9163_write_reg(conf, 0x29); 
+	_ili9163_write_reg(conf, 0x3A);
+	_ili9163_write_byte(conf, 0x05);
+	_ili9163_write_reg(conf, 0x29); 
 }
-
-
 
 /*-----------------------------------------------------------------------------*/
 
@@ -169,15 +179,15 @@ void
 ili9163_set_address(const struct ili9163 *conf, 
 					uint16_t x1, uint16_t x2, uint16_t y1, uint16_t y2)
 {
-	ili9163_write_reg(conf, 0x2A);
-	ili9163_write_word(conf, x1);
-	ili9163_write_word(conf, x2);
+	_ili9163_write_reg(conf, 0x2A);
+	_ili9163_write_word(conf, x1);
+	_ili9163_write_word(conf, x2);
 
-	ili9163_write_reg(conf, 0x2B);
-	ili9163_write_word(conf, y1);
-	ili9163_write_word(conf, y2);
+	_ili9163_write_reg(conf, 0x2B);
+	_ili9163_write_word(conf, y1);
+	_ili9163_write_word(conf, y2);
 
-	ili9163_write_reg(conf, 0x2C);
+	_ili9163_write_reg(conf, 0x2C);
 }
 
 void
@@ -191,7 +201,7 @@ ili9163_set_screen(const struct ili9163 *conf, uint16_t color)
 	{
 		for (col_index = 0; col_index < conf->lcd_x_size; col_index++)
 		{
-			ili9163_write_word(conf, color);
+			_ili9163_write_word(conf, color);
 		}
 	}
 }
@@ -210,7 +220,7 @@ ili9163_draw_pic(const struct ili9163 *conf, uint16_t x, uint16_t y,
 	ili9163_set_address(conf, x, x + width - 1, y, y + height - 1);
 	for (pic_index = 0; pic_index < width * height; pic_index++)
 	{
-		ili9163_write_word(conf, data[pic_index]);
+		_ili9163_write_word(conf, data[pic_index]);
 	}
 
 	return 0;
@@ -227,7 +237,7 @@ ili9163_draw_pixel(const struct ili9163 *conf, int16_t x, int16_t y,
 	}
 
 	ili9163_set_address(conf, x, x + 1, y, y + 1);
-	ili9163_write_word(conf, color);
+	_ili9163_write_word(conf, color);
 
 	return 0;
 }
@@ -317,7 +327,7 @@ ili9163_draw_fast_vline(const struct ili9163 *conf, int16_t x, int16_t y,
 	
 	while(height)
 	{
-		ili9163_write_word(conf, color);
+		_ili9163_write_word(conf, color);
 		height--;
 	}
 	return 0;
@@ -408,11 +418,11 @@ ili9163_put_char(const struct ili9163 *conf, uint16_t x, uint16_t y,
 			if ((pfont->data[start_char + (byte_height * x_count)]
 				 >> (y_count - 8 * temp)) & 0x01 )
 			{
-				ili9163_write_word(conf, pfont->text_color);
+				_ili9163_write_word(conf, pfont->text_color);
 			}
 			else 
 			{
-				ili9163_write_word(conf, pfont->bkg_color);
+				_ili9163_write_word(conf, pfont->bkg_color);
 			}
 		}
 		y_count++;
@@ -465,12 +475,10 @@ ili9163_print(const struct ili9163 *conf, uint16_t x, uint16_t y,
 	return len;
 }
 
-
-
 /*-----------------------------------------------------------------------------*/
 
 static void
-ili9163_write_byte(const struct ili9163 *conf, uint8_t byte)
+_ili9163_write_byte(const struct ili9163 *conf, uint8_t byte)
 {
 	gpio_set(conf->a0_port, conf->a0_pin);
 	gpio_clear(conf->cs_port, conf->cs_pin);
@@ -482,7 +490,7 @@ ili9163_write_byte(const struct ili9163 *conf, uint8_t byte)
 }
 
 static void
-ili9163_write_reg(const struct ili9163 *conf, uint8_t reg)
+_ili9163_write_reg(const struct ili9163 *conf, uint8_t reg)
 {
 	gpio_clear(conf->a0_port, conf->a0_pin);
 	gpio_clear(conf->cs_port, conf->cs_pin);
@@ -494,15 +502,14 @@ ili9163_write_reg(const struct ili9163 *conf, uint8_t reg)
 }
 
 static void
-ili9163_write_word(const struct ili9163 *conf, uint16_t word)
+_ili9163_write_word(const struct ili9163 *conf, uint16_t word)
 {
 	gpio_set(conf->a0_port, conf->a0_pin);
 	gpio_clear(conf->cs_port, conf->cs_pin);
 
-	ili9163_write_byte(conf, word >> 8);	
-	ili9163_write_byte(conf, word);
+	_ili9163_write_byte(conf, word >> 8);	
+	_ili9163_write_byte(conf, word);
 
 	gpio_set(conf->cs_port, conf->cs_pin);
 }
-
 
