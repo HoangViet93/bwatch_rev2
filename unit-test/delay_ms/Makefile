@@ -2,6 +2,6 @@ BASE_DIR = ../..
 
 BINARY = main
 
-CONFIG += CONFIG_DELAYMS
+CONFIG_DELAYMS = Y
 
 include $(BASE_DIR)/Makefile.common

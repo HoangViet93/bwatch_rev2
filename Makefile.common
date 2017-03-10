@@ -26,8 +26,7 @@ INCLUDE_PATH += -I$(BASE_DIR)/include
 include $(BASE_DIR)/Makefile.include
 
 # Get global define
-DEFS += $(foreach CONFIG,$(CONFIG),-D$(CONFIG))
-CFLAGS += $(DEFS)
+CFLAGS += $(DEFS_Y)
 
 BINARY_PATH = ./bin/
 VPATH += bin
