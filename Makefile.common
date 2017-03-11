@@ -21,6 +21,8 @@ OPENOCD_CFG = $(BASE_DIR)/sys/openocd.cfg
 
 OBJS += $(BINARY).o
 INCLUDE_PATH += -I$(BASE_DIR)/include
+# config compile variable
+OBJS += $(OBJS_Y)
 
 # Variable config from other makefile
 include $(BASE_DIR)/Makefile.include

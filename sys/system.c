@@ -3,6 +3,10 @@
 #include "libopencm3/stm32/usart.h"
 #include "libopencm3/cm3/systick.h"
 
+#if defined(CONFIG_FREERTOS)
+#include "cmsis_os.h"
+#endif
+
 volatile uint32_t tick_count = 0;
 
 #if defined(CONFIG_LED_B2)
