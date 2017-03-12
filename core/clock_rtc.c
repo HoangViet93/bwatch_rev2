@@ -42,10 +42,6 @@ clock_rtc_init(enum rcc_osc osc)
 		return -1;
 	}
 
-#if defined(CONFIG_FREERTOS)
-	rtc_mutex = xSemaphoreCreateMutex();
-#endif
-
 	/* setup clock source for rtc */
 	rcc_osc_on(osc);
 	rcc_wait_for_osc_ready(osc);

@@ -2,6 +2,4 @@ BASE_DIR = ../..
 
 BINARY = main
 
-CONFIG_FREERTOS = Y
-
 include $(BASE_DIR)/Makefile.common

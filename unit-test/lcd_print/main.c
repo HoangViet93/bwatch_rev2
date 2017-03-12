@@ -5,7 +5,6 @@
 #include "libopencm3/stm32/spi.h"
 #include "core/ili9163.h"
 #include "core/graphics.h"
-#include "core/font_data.h"
 
 static void clock_setup(void);
 

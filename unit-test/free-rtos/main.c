@@ -63,10 +63,9 @@ static void gpio_setup(void)
 				  GPIO_CNF_OUTPUT_PUSHPULL, GPIO0);
 }
 
-/*
+
 void sys_tick_handler(void)
 {
 	osSystickHandler();
 }
-*/
 

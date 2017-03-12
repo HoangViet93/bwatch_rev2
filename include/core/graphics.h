@@ -24,5 +24,7 @@ struct font
 	uint16_t bkg_color;
 };
 
+extern const uint8_t DejaVu_Sans_Mono7x13[];
+
 #endif
 
