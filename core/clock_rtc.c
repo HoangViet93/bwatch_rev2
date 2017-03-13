@@ -7,6 +7,7 @@
 #include "stddef.h"
 #include "string.h"
 #include "core/simple_lock.h"
+#include "stdio.h"
 
 #define CLOCK_BKP_REG BKP_DR1
 #define TIME_ALREADY_SET     (0x2a)
@@ -15,7 +16,6 @@
 
 /* debug purpose */
 #if (0) || defined(CONFIG_ENABLE_DEBUG) 
-#include "stdio.h"
 #define LOG(...) printf(__VA_ARGS__)
 #else
 #define LOG(...)
@@ -35,8 +35,6 @@ static const char month_names[] = "JanFebMarAprMayJunJulAugSepOctNovDec";
 int8_t
 clock_rtc_init(enum rcc_osc osc)
 {
-	struct time dummy;
-
 	if (osc != RCC_LSI && osc != RCC_LSE)
 	{
 		return -1;
@@ -105,7 +103,7 @@ _get_date_from_compiler(void)
 	struct date d;
 	char month_str[5] = {0};
 	
-	sscanf(__DATE__, "%s %d %d", month_str, &d.day, &d.year);
+	sscanf(__DATE__, "%s %d %d", month_str, (int*)&d.day, (int*)&d.year);
 	
 	d.month = (strstr(month_names, month_str) - month_names) / 3 + 1;
 
@@ -183,7 +181,7 @@ clock_rtc_get_time(struct time *t)
 	t->second = (uint8_t)((curr_sec % 3600) % 60);
 
 	/* change value if current hour elapsed */
-	if (curr_hour > 24)
+	if (curr_hour > 23)
 	{
 		day_elapsed = curr_hour / 24;
 		t->hour = curr_hour % 24;

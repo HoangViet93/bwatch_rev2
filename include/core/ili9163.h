@@ -25,6 +25,11 @@ struct ili9163 {
 
 #if defined(CONFIG_FREERTOS)
 extern SemaphoreHandle_t ili9163_mutex;
+#define LCD_LOCK() xSemaphoreTake(ili9163_mutex, 1000)
+#define LCD_UNLOCK() xSemaphoreGive(ili9163_mutex)
+#else
+#define LCD_LOCK()
+#define LCD_UNLOCK()
 #endif
 
 void ili9163_init(const struct ili9163 *conf);
