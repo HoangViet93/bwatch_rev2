@@ -11,7 +11,7 @@
 static void clock_setup(void);
 static void get_date_str(char *pbuf);
 
-const struct font digital_12x24= 
+static const struct font digital_12x24= 
 {
 	.width = 12,
 	.height = 24,
@@ -20,7 +20,7 @@ const struct font digital_12x24=
 	.bkg_color = BLACK
 };
 
-const struct font mono7x13= 
+static const struct font mono7x13= 
 {
 	.width = 7,
 	.height = 13,
@@ -110,8 +110,6 @@ static void get_date_str(char *pbuf)
     clock_rtc_get_date(&d);
     sprintf(pbuf, "%d %s %d", d.day, month_str[d.month - 1], d.year);
 }
-
-
 
 static void clock_setup(void)
 {

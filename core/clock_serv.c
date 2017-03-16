@@ -1,11 +1,14 @@
-#include "core/ili9163.h"
+#include "system.h"
 #include "libopencm3/stm32/rcc.h"
+#include "string.h"
+#include "stdio.h"
+#include "math.h"
+
 #include "core/graphics.h"
 #include "core/clock_serv.h"
 #include "core/serv_core.h"
 #include "core/clock_rtc.h"
-#include "math.h"
-#include "system.h"
+#include "core/ili9163.h"
 
 /* debug purpose */
 #if (0) || defined(CONFIG_ENABLE_DEBUG) 
@@ -34,21 +37,52 @@ static const struct font mono7x13 =
 	.bkg_color = BLACK
 };
 
+static const struct font digital_12x24= 
+{
+	.width = 12,
+	.height = 24,
+	.data = Digital_Mono12x24,
+	.text_color = WHITE,
+	.bkg_color = BLACK
+};
+
 static uint16_t center_x;
 static uint16_t center_y;
 static uint16_t radius;
 static const float scos = 0.0174532925; /* pi/2 */
 static uint8_t init_draw = 0;
 
+static uint16_t time_x, time_y;
+static uint16_t date_x, date_y;
+
 void
 clock_serv_init(enum rcc_osc osc)
 {
-	clock_rtc_init(osc);
+    uint16_t str_width = 0;
+    uint16_t str_height = 0;
+	
+    clock_rtc_init(osc);
 
 	/* pre-calculate size of analog clock */
 	center_x = lcd_conf.lcd_x_size / 2;
 	center_y = lcd_conf.lcd_y_size / 2;
 	radius = center_x - 1;
+
+    /* pre-calculate position of digital clock */
+    str_width = font_get_str_width(&digital_12x24, "00:00:00");
+    str_height = font_get_str_height(lcd_conf.lcd_x_size, &digital_12x24, "00:00:00");
+
+    time_y = lcd_conf.lcd_y_size/2 - str_height/2;
+    time_x = lcd_conf.lcd_x_size/2 - str_width/2;
+
+    str_width = font_get_str_width(&mono7x13, "00 Mar 0000");
+    str_height = font_get_str_height(lcd_conf.lcd_x_size, &mono7x13,"00 Mar 0000");
+    date_y = lcd_conf.lcd_y_size/2 - str_height/2;
+    date_x = lcd_conf.lcd_x_size/2 - str_width/2;
+    date_y += digital_12x24.height/2 + 7;
+
+    date_y -= 10;
+    time_y -= 10;
 }
 
 /*----------------------------------------------------------------------------*/
@@ -240,6 +274,68 @@ void
 analog_clock_deinit(void)
 {
     init_draw = 0;
+}
+/*----------------------------------------------------------------------------*/
+static uint8_t init_date = 0;
+
+static void 
+_get_date_str(char *pbuf)
+{
+    struct date d;
+
+    const char month_str[12][4] = 
+    {
+        "Jan","Feb","Mar","Apr", "May", "Jun", "Jul", 
+        "Aug", "Sep", "Oct", "Nov", "Dec"
+    };
+
+    clock_rtc_get_date(&d);
+    sprintf(pbuf, "%.2d %s %.4d", d.day, month_str[d.month - 1], d.year);
+}
+
+void
+_digi_print_date(void)
+{
+    char date_buf[10];
+
+    memset(date_buf, 0, 10);
+    _get_date_str(date_buf);
+
+	ili9163_print(&lcd_conf, date_x, date_y, date_buf, &mono7x13);
+}
+
+void 
+digi_clock_init(void)
+{
+    init_date = 0;
+
+    LCD_LOCK();
+    ili9163_set_screen(&lcd_conf, BLACK);
+    LCD_UNLOCK();
+}
+
+void 
+digi_clock_update(void)
+{
+    char time_buf[10];
+    struct time t;
+    
+    clock_rtc_get_time(&t);
+    sprintf(time_buf, "%.2d:%.2d:%.2d", t.hour, t.minutes, t.second);
+
+    if (t.hour > 23 || 0 == init_date)
+    {
+        _digi_print_date();
+        init_date = 1;
+    }
+	
+    ili9163_print(&lcd_conf, time_x - 1, time_y - 1, time_buf, &digital_12x24);
+}
+
+void
+digi_clock_deinit(void)
+{
+    init_date = 0;
 }
 /*----------------------------------------------------------------------------*/
 
