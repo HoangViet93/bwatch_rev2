@@ -48,8 +48,8 @@ int8_t ili9163_draw_fast_vline(const struct ili9163 *conf, int16_t x, int16_t y,
 							   int16_t height, uint16_t color);
 int8_t ili9163_fill_circle(const struct ili9163 *conf, int16_t x0, int16_t y0, 
 			       		   int16_t r, uint16_t color);
-int8_t ili9163_put_char(const struct ili9163 *conf, uint16_t x, uint16_t y,
-		       			char ch, const struct font *pfont);
+int16_t ili9163_put_char(const struct ili9163 *conf, uint16_t x, uint16_t y,
+		       			 char ch, const struct font *pfont);
 uint16_t ili9163_print(const struct ili9163 *conf, uint16_t x, uint16_t y, 
 					   const char *str, const struct font *pfont);
 #endif

@@ -113,8 +113,8 @@ _get_date_from_compiler(void)
 void
 clock_rtc_enable_interrupt(uint8_t priority)
 {
-	nvic_enable_irq(NVIC_RTC_IRQ);
 	nvic_set_priority(NVIC_RTC_IRQ, priority);
+	nvic_enable_irq(NVIC_RTC_IRQ);
 	rtc_interrupt_enable(RTC_SEC);
 }
 

@@ -384,7 +384,7 @@ ili9163_fill_circle(const struct ili9163 *conf, int16_t x0, int16_t y0,
 }
 
 /* I can't remember how i code it */
-int8_t
+int16_t
 ili9163_put_char(const struct ili9163 *conf, uint16_t x, uint16_t y,
 				 char ch, const struct font *pfont)
 {
@@ -433,7 +433,7 @@ ili9163_put_char(const struct ili9163 *conf, uint16_t x, uint16_t y,
 		}
 	}
 
-	return 0;
+	return char_width;
 }
 
 uint16_t 
@@ -444,6 +444,8 @@ ili9163_print(const struct ili9163 *conf, uint16_t x, uint16_t y,
 	uint8_t byte_height;
 	uint16_t x1 = 0;
 	volatile uint16_t count, temp;
+	uint16_t str_width = 0;
+	int16_t char_width = 0;
 
 	len = strlen(str);
 
@@ -458,10 +460,14 @@ ili9163_print(const struct ili9163 *conf, uint16_t x, uint16_t y,
 
 	for (count = 0; count < len; count++)
 	{
-		if (-1 == ili9163_put_char(conf, x + x1, y, str[count], pfont))
+		char_width = ili9163_put_char(conf, x + x1, y, str[count], pfont);
+		if (-1 == char_width)
 		{
 			return count;
 		}
+
+		str_width += char_width;
+
 		temp = (str[count] - 32) * (pfont->width * byte_height + 1);
 		x1 += pfont->data[temp];
 		temp = (str[count + 1] - 32) * (pfont->width * byte_height + 1);
@@ -472,7 +478,7 @@ ili9163_print(const struct ili9163 *conf, uint16_t x, uint16_t y,
 			x1 = 0;
 		}
 	}
-	return len;
+	return str_width;
 }
 
 /*-----------------------------------------------------------------------------*/

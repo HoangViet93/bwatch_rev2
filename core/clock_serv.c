@@ -38,6 +38,7 @@ static uint16_t center_x;
 static uint16_t center_y;
 static uint16_t radius;
 static const float scos = 0.0174532925; /* pi/2 */
+static uint8_t init_draw = 0;
 
 void
 clock_serv_init(enum rcc_osc osc)
@@ -59,8 +60,6 @@ _analog_clock_draw_face(void)
 	float sx = 0, sy = 1;
 	uint16_t x0, x1, y0, y1, xd, yd; 
 	uint8_t num_pos = 0;
-
-	LCD_LOCK();
 
 	/* draw outline */
 	ili9163_fill_circle(&lcd_conf, center_x, center_y, radius, BLUE);
@@ -108,8 +107,6 @@ _analog_clock_draw_face(void)
 			ili9163_draw_line(&lcd_conf, x0, y0, x1, y1, 0xffff);
 		}
 	}
-
-	LCD_UNLOCK();
 }
 
 static void
@@ -177,7 +174,7 @@ _analog_clock_calculate_handpos(enum analog_clock_hand type, int16_t degree,
 	}
 }
 
-void 
+static void 
 _analog_clock_update_hand(struct time t)
 {
 	float sec_degree = 0; 
@@ -185,9 +182,6 @@ _analog_clock_update_hand(struct time t)
 	float min_degree = 0;
 	static int16_t hand_x[3][4];
 	static int16_t hand_y[3][4];
-	static uint8_t init_draw = 0;
-
-	LCD_LOCK();
 
 	/* calculate degree of each hand */
 	sec_degree = t.second * 6;
@@ -217,9 +211,35 @@ _analog_clock_update_hand(struct time t)
 	_analog_clock_draw_hand(SEC_HAND, RED, hand_x, hand_y);
 
 	ili9163_fill_circle(&lcd_conf, center_x + 1, center_y + 1, 3, RED);
-
-	LCD_UNLOCK();
 }
 
+void 
+analog_clock_init(void)
+{
+    init_draw = 0;
+
+    LCD_LOCK();
+    ili9163_set_screen(&lcd_conf, BLACK);
+    _analog_clock_draw_face();
+    LCD_UNLOCK();
+}
+
+void
+analog_clock_update(void)
+{
+    struct time t;
+    
+    clock_rtc_get_time(&t);
+
+    LCD_LOCK();
+    _analog_clock_update_hand(t);
+    LCD_UNLOCK();
+}
+
+void 
+analog_clock_deinit(void)
+{
+    init_draw = 0;
+}
 /*----------------------------------------------------------------------------*/
 
