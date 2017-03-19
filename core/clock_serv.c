@@ -46,11 +46,16 @@ static const struct font digital_12x24=
 	.bkg_color = BLACK
 };
 
+
+static void _analog_clock_calculate_params(void);
+static void _digi_clock_calculate_params(void);
+
 static uint16_t center_x;
 static uint16_t center_y;
 static uint16_t radius;
 static const float scos = 0.0174532925; /* pi/2 */
 static uint8_t init_draw = 0;
+static uint8_t init_date = 0;
 
 static uint16_t time_x, time_y;
 static uint16_t date_x, date_y;
@@ -62,32 +67,23 @@ clock_serv_init(enum rcc_osc osc)
     uint16_t str_height = 0;
 	
     clock_rtc_init(osc);
-
-	/* pre-calculate size of analog clock */
-	center_x = lcd_conf.lcd_x_size / 2;
-	center_y = lcd_conf.lcd_y_size / 2;
-	radius = center_x - 1;
-
-    /* pre-calculate position of digital clock */
-    str_width = font_get_str_width(&digital_12x24, "00:00:00");
-    str_height = font_get_str_height(lcd_conf.lcd_x_size, &digital_12x24, "00:00:00");
-
-    time_y = lcd_conf.lcd_y_size/2 - str_height/2;
-    time_x = lcd_conf.lcd_x_size/2 - str_width/2;
-
-    str_width = font_get_str_width(&mono7x13, "00 Mar 0000");
-    str_height = font_get_str_height(lcd_conf.lcd_x_size, &mono7x13,"00 Mar 0000");
-    date_y = lcd_conf.lcd_y_size/2 - str_height/2;
-    date_x = lcd_conf.lcd_x_size/2 - str_width/2;
-    date_y += digital_12x24.height/2 + 7;
-
-    date_y -= 10;
-    time_y -= 10;
+    
+    _analog_clock_calculate_params();
+    _digi_clock_calculate_params();
 }
 
 /*----------------------------------------------------------------------------*/
 /* analog clock service function */
-void
+static void
+_analog_clock_calculate_params(void)
+{
+	/* pre-calculate size of analog clock */
+	center_x = lcd_conf.lcd_x_size / 2;
+	center_y = lcd_conf.lcd_y_size / 2;
+	radius = center_x - 1;
+}
+
+static void
 _analog_clock_draw_face(void)
 {
 	uint16_t degree = 0;
@@ -276,8 +272,7 @@ analog_clock_deinit(void)
     init_draw = 0;
 }
 /*----------------------------------------------------------------------------*/
-static uint8_t init_date = 0;
-
+/* digital clock service */
 static void 
 _get_date_str(char *pbuf)
 {
@@ -293,7 +288,7 @@ _get_date_str(char *pbuf)
     sprintf(pbuf, "%.2d %s %.4d", d.day, month_str[d.month - 1], d.year);
 }
 
-void
+static void
 _digi_print_date(void)
 {
     char date_buf[10];
@@ -301,7 +296,29 @@ _digi_print_date(void)
     memset(date_buf, 0, 10);
     _get_date_str(date_buf);
 
+    LCD_LOCK();
 	ili9163_print(&lcd_conf, date_x, date_y, date_buf, &mono7x13);
+    LCD_UNLOCK();
+}
+
+static void
+digi_clock_calculate_params(void)
+{
+    /* pre-calculate position of digital clock */
+    str_width = font_get_str_width(&digital_12x24, "00:00:00");
+    str_height = font_get_str_height(lcd_conf.lcd_x_size, &digital_12x24, "00:00:00");
+
+    time_y = lcd_conf.lcd_y_size/2 - str_height/2;
+    time_x = lcd_conf.lcd_x_size/2 - str_width/2;
+
+    str_width = font_get_str_width(&mono7x13, "00 Mar 0000");
+    str_height = font_get_str_height(lcd_conf.lcd_x_size, &mono7x13,"00 Mar 0000");
+    date_y = lcd_conf.lcd_y_size/2 - str_height/2;
+    date_x = lcd_conf.lcd_x_size/2 - str_width/2;
+    date_y += digital_12x24.height/2 + 7;
+
+    date_y -= 10;
+    time_y -= 10;
 }
 
 void 
@@ -328,8 +345,9 @@ digi_clock_update(void)
         _digi_print_date();
         init_date = 1;
     }
-	
+	LCD_LOCK();
     ili9163_print(&lcd_conf, time_x - 1, time_y - 1, time_buf, &digital_12x24);
+    LCD_UNLOCK();
 }
 
 void
