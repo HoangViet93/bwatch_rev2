@@ -46,7 +46,6 @@ static const struct font digital_12x24=
 	.bkg_color = BLACK
 };
 
-
 static void _analog_clock_calculate_params(void);
 static void _digi_clock_calculate_params(void);
 
