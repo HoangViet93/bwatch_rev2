@@ -62,9 +62,6 @@ static uint16_t date_x, date_y;
 void
 clock_serv_init(enum rcc_osc osc)
 {
-    uint16_t str_width = 0;
-    uint16_t str_height = 0;
-	
     clock_rtc_init(osc);
     
     _analog_clock_calculate_params();
@@ -301,8 +298,11 @@ _digi_print_date(void)
 }
 
 static void
-digi_clock_calculate_params(void)
+_digi_clock_calculate_params(void)
 {
+    uint16_t str_width = 0;
+    uint16_t str_height = 0;
+	
     /* pre-calculate position of digital clock */
     str_width = font_get_str_width(&digital_12x24, "00:00:00");
     str_height = font_get_str_height(lcd_conf.lcd_x_size, &digital_12x24, "00:00:00");

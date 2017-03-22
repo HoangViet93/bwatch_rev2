@@ -7,12 +7,16 @@
 #include "core/ili9163.h"
 #include "core/graphics.h"
 #include "core/clock_rtc.h"
+#include "core/periodic_task.h"
+#include "cmsis_os.h"
 
 #define NEW_BUTTON (100)
 
 static void clock_setup(void);
 static void get_date_str(char *pbuf);
 static void gpio_setup(void);
+static void stop_watch(void *arg);
+static void scan_btn(void);
 
 static const struct font digital_12x24= 
 {
@@ -56,27 +60,58 @@ int main(void)
 	system_init();
 	clock_setup();
 	clock_rtc_init(RCC_LSI);
+    gpio_setup();
 
     queue = xQueueCreate(10, sizeof(uint32_t));
 
 	ili9163_init(&ili_conf);
 	ili9163_set_screen(&ili_conf, 0x0000);
-    
+
+    periodic_task_init();
+    periodic_task_register(scan_btn, 10, TASK_THREAD_CONTEX);
+    xTaskCreate(stop_watch, "stop_watch", 128, NULL, 2, NULL);
+    vTaskStartScheduler();
+
 	while (1)
 	{
-		clock_rtc_get_time(&t);
-
-		delay_ms(980);
 	}
 }
 /*----------------------------------------------------------------------------*/
+static struct time t = {0, 0, 0};
+uint16_t time_x, time_y;
+
+const uint8_t fake_ms[10] = {0, 12, 28, 34, 47, 53, 65, 78, 83, 96};
+
+static void update_count(void)
+{
+    uint8_t clock_str_buf[10];
+    t.second++;
+        
+    if (10 == t.second)
+    {
+        t.second = 0;
+        t.minutes++;
+        if (60 == t.minutes)
+        {
+            t.minutes = 0;
+            t.hour++;
+            if (60 == t.hour)
+            {
+                t.hour = 0;
+            }
+        }
+    }
+	sprintf(clock_str_buf, "%.2d:%.2d:%.2d", t.hour, t.minutes, fake_ms[t.second]);
+	ili9163_print(&ili_conf, time_x - 1, time_y - 1, clock_str_buf, &digital_12x24);
+}
+
 static void stop_watch(void *arg)
 {
-    struct time t = {0, 0, 0};
     uint8_t clock_str_buf[10];
 	uint16_t str_width = 0;
     uint16_t str_height = 0;
-    uint16_t time_x, time_y;
+    uint32_t mes = 0;
+    uint8_t flag = 0;
 
     (void)arg;
     str_width = font_get_str_width(&digital_12x24, "00:00:00");
@@ -85,40 +120,48 @@ static void stop_watch(void *arg)
     time_y = ili_conf.lcd_y_size/2 - str_height/2;
     time_x = ili_conf.lcd_x_size/2 - str_width/2;
 
-	sprintf(clock_str_buf, "%d:%d:%d", t.hour, t.minutes, t.second);
+	sprintf(clock_str_buf, "%.2d:%.2d:%.2d", t.hour, t.minutes, t.second);
 	ili9163_print(&ili_conf, time_x - 1, time_y - 1, clock_str_buf, &digital_12x24);
 
     while (1)
     {
-        xQueueReceive(queue, &mes, 100); 
-
+        xQueueReceive(queue, &mes, portMAX_DELAY);
+        if (NEW_BUTTON == mes)
+        {
+            if (flag == 0)
+            {
+                led_b2_on;
+                memset(&t, 0, sizeof(struct time));
+                periodic_task_register(update_count, 86, TASK_THREAD_CONTEX);
+                flag = 1;
+            }
+            else
+            {
+                led_b2_off;
+                periodic_task_unregister(update_count);
+                flag = 0;
+            }
+        }   
     }
 }
 
 /*----------------------------------------------------------------------------*/
 static uint8_t btn_level[2] = {32, 64};
 static uint8_t btn_oldlevel[2] = {32, 64};
-static void scan_btn(void *arg)
+static void scan_btn(void)
 {
-    (void)arg;
     static uint32_t mes = NEW_BUTTON;
 
-    gpio_setup();
+    btn_level[1] = gpio_get(GPIOB, GPIO6); 
 
-    while (1)
+    if (btn_level[1] != btn_oldlevel[1])
     {
-        btn_level[1] = gpio_get(GPIOB, GPIO6); 
-
-        if (btn_level[1] != btn_oldlevel[1])
+        if (btn_level[1] != 0)
         {
-            if (btn_level[1] != 0)
-            {
-                printf("button pressed sent event\r\n");
-                xQueueSendToFront(queue, &mes, 100); 
-            }
-            btn_oldlevel[1] = btn_level[1];
+            xQueueSendToFront(queue, &mes, 100); 
+            led_b2_toggle();
         }
-        vTaskDelay(10);
+        btn_oldlevel[1] = btn_level[1];
 	}
 }
 
