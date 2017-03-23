@@ -4,7 +4,7 @@
 #include "libopencm3/stm32/exti.h"
 #include "system.h"
 #include "stddef.h"
-#include "core/event.h"
+#include "core/button.h"
 
 #define BTN_PRESSED  (0)
 #define BTN_RELEASE  (1)
