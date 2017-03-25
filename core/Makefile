@@ -4,4 +4,6 @@ OBJS_$(CONFIG_USE_FONT) += font_data.o
 OBJS_$(CONFIG_PERIODIC_TASK) += periodic_task.o
 OBJS_$(CONFIG_BUTTON) += button.o
 
+OBJS_$(CONFIG_CLOCK) += clock_main.o
+
 VPATH += $(BASE_DIR)/core
