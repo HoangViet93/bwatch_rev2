@@ -24,7 +24,7 @@ int main(void)
 	system_init();
 
 	gpio_setup();
-    periodic_task_init();
+    periodic_task_init(1);
     periodic_task_register(sub_func1, 200, EXECUTE_CONTEX);
     periodic_task_register(sub_func2, 200, EXECUTE_CONTEX);
     periodic_task_register(sub_func3, 200, EXECUTE_CONTEX);

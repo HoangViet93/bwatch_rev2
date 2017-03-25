@@ -19,7 +19,6 @@
 #define PERIODIC_TASK_QUEUE_SIZE (10)
 #define TASK_HANDLER_STACK_SIZE  (128)
 #define TIMER_PERIOD (10) /* x0.1ms */
-#define PERIODIC_TASK_PRIORITY  (1)
 
 #define TASK_POOL_LOCK() xSemaphoreTake(task_pool_key, 100)
 #define TASK_POOL_UNLOCK() xSemaphoreGive(task_pool_key)
@@ -35,11 +34,11 @@ SemaphoreHandle_t task_pool_key;
 
 /*----------------------------------------------------------------------------*/
 void
-periodic_task_init(void)
+periodic_task_init(uint8_t priority)
 {
     memset((void*)task_pool, 0, sizeof(struct periodic_task)*POOL_SIZE);
     xTaskCreate(_periodic_task_handler, "periodic_task_handler", TASK_HANDLER_STACK_SIZE, 
-                NULL, PERIODIC_TASK_PRIORITY, NULL);
+                NULL, priority, NULL);
 }
 
 int8_t 

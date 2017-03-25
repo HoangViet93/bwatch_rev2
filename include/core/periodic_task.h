@@ -17,7 +17,7 @@ struct periodic_task
     uint8_t flag;
 };
 
-void periodic_task_init(void);
+void periodic_task_init(uint8_t priority);
 int8_t periodic_task_register(void (*pfunc)(void), uint16_t interval, uint8_t flag);
 int8_t periodic_task_unregister(void (*pfunc)(void));
 

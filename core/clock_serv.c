@@ -9,6 +9,7 @@
 #include "core/serv_core.h"
 #include "core/clock_rtc.h"
 #include "core/ili9163.h"
+#include "core/periodic_task.h"
 
 /* debug purpose */
 #if (0) || defined(CONFIG_ENABLE_DEBUG) 
@@ -20,12 +21,20 @@
 
 #define HOUR_UPDATE_IN_MIN  (2) 
 #define MIN_UPDATE_IN_SEC   (15)
+#define STOP_WATCH_UPDATE_PERIOD  (86)
 
 enum analog_clock_hand
 {
 	HOUR_HAND = 0,
 	MIN_HAND,
 	SEC_HAND,
+};
+
+struct stop_time
+{
+    uint8_t min;
+    uint8_t sec;
+    uint8_t tenms;
 };
 
 static const struct font mono7x13 = 
@@ -58,6 +67,8 @@ static uint8_t init_date = 0;
 
 static uint16_t time_x, time_y;
 static uint16_t date_x, date_y;
+
+static const uint8_t fake_tenms[10] = {0, 12, 28, 34, 47, 53, 65, 78, 83, 96};
 
 void
 clock_serv_init(enum rcc_osc osc)
@@ -355,4 +366,64 @@ digi_clock_deinit(void)
     init_date = 0;
 }
 /*----------------------------------------------------------------------------*/
+static struct stop_time stop_time;
+
+void 
+stopwatch_init(void)
+{
+    char clock_str_buf[10];
+
+    LCD_LOCK();
+    ili9163_set_screen(&lcd_conf, BLACK);
+	sprintf(clock_str_buf, "%.2d:%.2d.%.2d", 0, 0, 0);
+	ili9163_print(&lcd_conf, time_x - 1, time_y - 1, clock_str_buf, &digital_12x24);
+    LCD_UNLOCK();
+}
+
+static void
+_stopwatch_update(void)
+{
+    char clock_str_buf[10];
+    stop_time.tenms++;
+    
+    if (10 == stop_time.tenms)
+    {
+        stop_time.tenms = 0;
+        stop_time.sec++;
+        if (60 == stop_time.sec)
+        {
+            stop_time.sec = 0;
+            stop_time.min++;
+            
+            if (60 == stop_time.min)
+            {
+                memset(&stop_time, 0, sizeof(stop_time));
+            }
+        }
+    }
+    LCD_LOCK(); 
+	sprintf(clock_str_buf, "%.2d:%.2d.%.2d", stop_time.min, stop_time.sec, fake_tenms[stop_time.tenms]);
+	ili9163_print(&lcd_conf, time_x - 1, time_y - 1, clock_str_buf, &digital_12x24);
+    LCD_UNLOCK();
+}
+
+void
+stopwatch_start(void)
+{
+    memset(&stop_time, 0, sizeof(stop_time));
+    periodic_task_register(_stopwatch_update, STOP_WATCH_UPDATE_PERIOD, TASK_THREAD_CONTEX);    
+}
+
+void 
+stopwatch_stop(void)
+{
+    periodic_task_unregister(_stopwatch_update);    
+}
+
+void
+stopwatch_deinit(void)
+{
+    stopwatch_stop();
+    return;
+}
 

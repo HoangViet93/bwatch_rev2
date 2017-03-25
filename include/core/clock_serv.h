@@ -13,5 +13,10 @@ void analog_clock_init(void);
 void analog_clock_update(void);
 void analog_clock_deinit(void);
 
+void stopwatch_init(void);
+void stopwatch_start(void);
+void stopwatch_stop(void);
+void stopwatch_deinit(void);
+
 #endif
 

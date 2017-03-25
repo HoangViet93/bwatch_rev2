@@ -3,8 +3,13 @@
 #include "libopencm3/stm32/gpio.h"
 #include "libopencm3/stm32/rcc.h"
 #include "libopencm3/stm32/spi.h"
+
 #include "core/ili9163.h"
 #include "core/clock_serv.h"
+#include "core/periodic_task.h"
+#include "core/button.h"
+
+#define PERIODIC_TASK_PRIORITY  (1)
 
 static void _clock_setup(void);
 
@@ -35,6 +40,13 @@ void serv_init(void)
 
 	/* service module init */
 	clock_serv_init(RCC_LSI);
+
+    /* init periodic thread */
+    periodic_task_init(PERIODIC_TASK_PRIORITY);
+
+    /* init button */
+    button_init(BTN5);
+    button_init(BTN6);
 }
 
 static void _clock_setup(void)
