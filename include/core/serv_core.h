@@ -24,6 +24,7 @@ enum
 };
 
 extern const struct ili9163 lcd_conf;   /* TODO remove it */
+extern const struct adxl345 adxl345_conf;   /* TODO remove it */
 void serv_init(void);
 
 #endif

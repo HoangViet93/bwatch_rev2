@@ -3,11 +3,13 @@
 #include "libopencm3/stm32/gpio.h"
 #include "libopencm3/stm32/rcc.h"
 #include "libopencm3/stm32/spi.h"
+#include "libopencm3/stm32/i2c.h"
 
 #include "core/ili9163.h"
 #include "core/clock_serv.h"
 #include "core/periodic_task.h"
 #include "core/button.h"
+#include "core/adxl345.h"
 
 #define PERIODIC_TASK_PRIORITY  (1)
 
@@ -29,6 +31,15 @@ const struct ili9163 lcd_conf =
 
 	/* if u plan to use another SPI, remember init AF func for gpio */
 	.spi_reg = SPI2 
+};
+
+const struct adxl345 adxl345_conf =
+{
+	.i2c = I2C2,
+	.scl_port = GPIOB,
+	.scl_pin = GPIO10,
+	.sda_port = GPIOB,
+	.sda_pin = GPIO11
 };
 
 void serv_init(void)
@@ -54,5 +65,7 @@ static void _clock_setup(void)
 	rcc_periph_clock_enable(RCC_GPIOB);
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_SPI2);
+    rcc_periph_clock_enable(RCC_I2C2);
+    rcc_periph_clock_enable(RCC_AFIO);
 }
 
