@@ -40,7 +40,7 @@ static void thread1(void *arg)
 
     thread1_queue = xQueueCreate(10, sizeof(uint32_t));
 	clock_rtc_add_cb(rtc_cb);
-	clock_rtc_enable_interrupt(16 * 6);
+	clock_rtc_enable_interrupt(16 * 5);
 	
 	while (1)
 	{

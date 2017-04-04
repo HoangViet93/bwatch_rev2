@@ -13,6 +13,8 @@ int8_t activity_serv_event_cb_add(void (*pfunc)(uint8_t event));
 void activity_serv_event_enable(void);
 void activity_serv_event_disable(void);
 void activity_serv_deinit(void);
+void activity_serv_axis_update(void);
+void activity_serv_update_stt(uint8_t event);
 
 #endif
 

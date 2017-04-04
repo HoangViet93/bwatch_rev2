@@ -2,6 +2,7 @@
 #include "libopencm3/stm32/gpio.h"
 #include "libopencm3/stm32/i2c.h"
 #include "core/adxl345.h"
+#include "system.h"
 
 #if (1)
 #include "stdio.h"
@@ -11,7 +12,7 @@
 #endif
 
 #define ADXL345_I2C_ADDR	(0x53)
-#define ADXL345_DEVID		(0xE5)
+#define ADXL345_DEVID_VAL	(0xE5)
 
 static void _i2c_init(const struct adxl345 *conf);
 static void _i2c_transmit_bytes(uint32_t i2c, const uint8_t *pbuf, uint16_t len);
@@ -21,8 +22,9 @@ int8_t
 adxl345_init(const struct adxl345 *conf)
 {
 	_i2c_init(conf);
-	if (ADXL345_DEVID != adxl345_read_byte(conf->i2c, ADXL345_DEVID))
+	if (ADXL345_DEVID_VAL != adxl345_read_byte(conf->i2c, ADXL345_DEVID))
 	{
+		LOG("%s: init failed\r\n", __FILE__);
 		return -1;
 	}
 	LOG("%s: init success\r\n", __FILE__);
