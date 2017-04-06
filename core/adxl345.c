@@ -4,7 +4,7 @@
 #include "core/adxl345.h"
 #include "system.h"
 
-#if (1)
+#if (0)
 #include "stdio.h"
 #define LOG(...)	printf(__VA_ARGS__)
 #else

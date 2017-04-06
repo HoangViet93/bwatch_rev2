@@ -7,6 +7,7 @@ struct screen
 {
     void (*pfunc)(void);
     QueueHandle_t *pqueue;
+	uint8_t is_run;
 };
 
 enum
@@ -20,6 +21,7 @@ enum
 enum
 {
     CLOCK_SCREEN = 0,
+    ACT_SCREEN,
     MAX_SCREEN,
 };
 

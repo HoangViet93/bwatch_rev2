@@ -27,14 +27,15 @@ static uint8_t curr_screen = ANALOG_CLOCK_SCREEN;
 static void (*sub_screen[MAX_CLOCK_SCREEN])(void) = \
 {_do_analog_clock, _do_digi_clock, _do_stopwatch};
 
-struct screen clock_screen = {_do_clock_screen, &queue};
+struct screen clock_screen = {_do_clock_screen, &queue, 0};
 
 /*----------------------------------------------------------------------------*/
 static void 
 _do_clock_screen(void)
 {
+	clock_screen.is_run = 1;
     queue = xQueueCreate(10, sizeof(uint8_t));
-    while (1)
+    while (clock_screen.is_run)
     {
         sub_screen[curr_screen]();
     }
@@ -52,10 +53,17 @@ _rtc_event_handler(void)
 }
 
 static void
-_clock_deinit(void)
+_clock_event_deinit(void)
 {
     clock_rtc_remove_cb(_rtc_event_handler);
     clock_rtc_disable_interrupt();
+}
+
+static void
+_clock_event_init(void)
+{
+	clock_rtc_add_cb(_rtc_event_handler);
+	clock_rtc_enable_interrupt(RTC_INT_PRIORITY);
 }
 
 static void 
@@ -64,9 +72,7 @@ _do_analog_clock(void)
     uint8_t message = 0;
 
     analog_clock_init();
-
-	clock_rtc_add_cb(_rtc_event_handler);
-	clock_rtc_enable_interrupt(RTC_INT_PRIORITY);
+	_clock_event_init();
 
     while (1)
     {
@@ -80,6 +86,9 @@ _do_analog_clock(void)
         case BTN6_PRESSED:
             curr_screen = DIGITAL_CLOCK_SCREEN;
             return;
+		case BTN6_LONG_PRESSED:
+			clock_screen.is_run = 0;
+			return;
         default:
             break;
         }
@@ -92,6 +101,7 @@ _do_digi_clock(void)
     uint8_t message = 0;
 
     digi_clock_init();
+	_clock_event_init();
 
     while (1)
     {
@@ -104,8 +114,12 @@ _do_digi_clock(void)
             break;
         case BTN6_PRESSED:
             curr_screen = STOPWATCH_SCREEN;
-            _clock_deinit();
+            _clock_event_deinit();
             return;
+		case BTN6_LONG_PRESSED:
+            _clock_event_deinit();
+			clock_screen.is_run = 0;
+			return;
         default:
             break;
         }
@@ -149,6 +163,10 @@ _do_stopwatch(void)
             curr_screen = ANALOG_CLOCK_SCREEN;
             stopwatch_deinit();
             return;
+		case BTN6_LONG_PRESSED:
+            stopwatch_deinit();
+			clock_screen.is_run = 0;
+			return;
         default:
             break;
         }

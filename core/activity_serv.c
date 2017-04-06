@@ -15,7 +15,7 @@
 
 
 /* debug purpose */
-#if (1) || defined(CONFIG_ENABLE_DEBUG) 
+#if (0) || defined(CONFIG_ENABLE_DEBUG) 
 #include "stdio.h"
 #define LOG(...) printf(__VA_ARGS__)
 #else
@@ -23,6 +23,7 @@
 #endif
 
 #define ACTIVITY_INT_PRIORITY	(7 * 16)
+#define ACT_SERV_AXIS_UPDATE_TIME  500
 
 static void _activity_serv_init_gyro(void);
 static void _activity_serv_init_exti(void);
@@ -109,6 +110,8 @@ activity_serv_event_cb_remove(void (*pfunc)(uint8_t event))
 void
 activity_serv_event_enable(void)
 {
+	periodic_task_register(activity_serv_axis_update, ACT_SERV_AXIS_UPDATE_TIME - 1, TASK_THREAD_CONTEX);
+	activity_serv_update_stt(ACT_EVENT_INACTIVITY);
     nvic_set_priority(NVIC_EXTI1_IRQ, ACTIVITY_INT_PRIORITY);
 	nvic_enable_irq(NVIC_EXTI1_IRQ);
 }
@@ -116,25 +119,9 @@ activity_serv_event_enable(void)
 void
 activity_serv_event_disable(void)
 {
+	periodic_task_unregister(activity_serv_axis_update);
     nvic_disable_irq(NVIC_EXTI1_IRQ);
 }
-
-void 
-activity_serv_axis_update(void)
-{
-	struct axis axis;
-	float x,y,z = 0;
-	char buff[15];
-	
-	adxl345_axis_read(&adxl345_conf, &axis);
-	x = axis.x * 0.004 * 9.806;
-	y = axis.y * 0.004 * 9.806;
-	z = axis.z * 0.004 * 9.806;
-	
-	sprintf(buff, "x = %.2d  ", axis.x);
-	ili9163_print(&lcd_conf, 0, 0, buff, &mono7x13);
-}
-
 
 static void
 _free_fall_alarm(void)
@@ -154,7 +141,7 @@ _free_fall_alarm(void)
 	}
 
 	count++;
-
+	
 	ili9163_print(&lcd_conf, act_x, act_y, "free fall ", &cali18x20);
 
 	if (20 == count)
@@ -165,7 +152,6 @@ _free_fall_alarm(void)
 		cali18x20.text_color = WHITE;
 		cali18x20.bkg_color = BLACK;
 		
-		activity_serv_update_stt(ACT_EVENT_INACTIVITY);
 		activity_serv_event_enable();
 	}
 }
@@ -177,10 +163,13 @@ activity_serv_update_stt(uint8_t event)
 	static uint8_t ff_detect_step = 0;	
 
 	bkp_color = cali18x20.text_color;
+
+	LCD_LOCK();
+
 	switch (event)
 	{
 		case ACT_EVENT_ACTIVITY:
-			printf("ACT_EVENT_ACTIVITY\r\n");
+			LOG("ACT_EVENT_ACTIVITY\r\n");
 			if ((ff_detect_step & ADXL345_FREE_FALL) == ADXL345_FREE_FALL)
 			{
 				ff_detect_step |= ADXL345_ACTIVITY;
@@ -193,7 +182,7 @@ activity_serv_update_stt(uint8_t event)
 			}
 			break;
 		case ACT_EVENT_INACTIVITY:
-			printf("ACT_EVENT_INACTIVITY\r\n");
+			LOG("ACT_EVENT_INACTIVITY\r\n");
 			if ((ff_detect_step & ADXL345_ACTIVITY) == ADXL345_ACTIVITY)
 			{
 				activity_serv_event_disable();
@@ -208,13 +197,52 @@ activity_serv_update_stt(uint8_t event)
 			}
 			break;
 		case ACT_EVENT_FF:
-			printf("ACT_EVENT_FF\r\n");
+			LOG("ACT_EVENT_FF\r\n");
 			ff_detect_step |= ADXL345_FREE_FALL;
 			break;
 		default:
 			break;
 	}
 	cali18x20.text_color = bkp_color;
+
+	LCD_UNLOCK();
+}
+
+static void 
+_parsing_axis_f(char *axis, float value, char *buff)
+{
+	uint16_t major = 0;
+	uint8_t minor = 0;
+
+	major = (uint16_t)value;
+	minor = (uint16_t)(value * 100) - major * 100;
+	sprintf(buff, "%s = %d.%d", axis, major, minor);
+}
+
+void
+activity_serv_axis_update(void)
+{
+	struct axis axis = {0};
+	float axis_f[3] = {0};
+	char axis_str[20] = {0};
+
+	adxl345_axis_read(&adxl345_conf, &axis);
+	axis_f[0] = axis.x * 0.004 * 9.806;
+	axis_f[1] = axis.y * 0.004 * 9.806;
+	axis_f[2] = axis.z * 0.004 * 9.806;
+	
+	LCD_LOCK();
+	_parsing_axis_f("x", axis_f[0], axis_str);
+	ili9163_print(&lcd_conf, 0, 0, axis_str, &mono7x13);
+	bzero(axis_str, sizeof(axis_str));
+
+	_parsing_axis_f("y", axis_f[1], axis_str);
+	ili9163_print(&lcd_conf, 0, mono7x13.height, axis_str, &mono7x13);
+	bzero(axis_str, sizeof(axis_str));
+
+	_parsing_axis_f("z", axis_f[2], axis_str);
+	ili9163_print(&lcd_conf, 0, mono7x13.height * 2, axis_str, &mono7x13);
+	LCD_UNLOCK();
 }
 
 void
@@ -244,7 +272,7 @@ _activity_serv_init_gyro(void)
 	adxl345_write_byte(adxl345_conf.i2c, ADXL345_TIME_INACT, 2);	
 
 	adxl345_freefall_thresh_set(&adxl345_conf, 750);
-	adxl345_freefall_time_set(&adxl345_conf, 30);
+	adxl345_freefall_time_set(&adxl345_conf, 50);
 
 	adxl345_interrupt_set(&adxl345_conf, INT_PIN_1, ADXL345_ACTIVITY | ADXL345_INACTIVITY
 						  | ADXL345_FREE_FALL);
