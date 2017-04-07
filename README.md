@@ -1,5 +1,5 @@
 # bwatch_rev2
-Hey, it's remake version of my old project (bwatch)[https://github.com/HoangViet93/beewatch]. </br>
+Hey, it's remake version of my old project [bwatch](https://github.com/HoangViet93/beewatch). 
 I re-design it by use `Makefile` and `gcc` instead of KeilC and cut-off some uncomplete feature like 
 zigbee and focus to most useful things. </br>
 Here are some things my watch can do:
