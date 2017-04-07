@@ -6,3 +6,6 @@ Here are some things my watch can do:
 - measure heart rate
 - stopwatch, analog and digital clock
 - activity status
+# To used it ?
+install arm embedded toolchain frist, after that go to any folder in unit-test and `make lib` and `make`.
+I seperate make to two phase just because i want reduce the log messgae.
