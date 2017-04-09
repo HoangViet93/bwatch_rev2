@@ -22,6 +22,7 @@ enum
 {
     CLOCK_SCREEN = 0,
     ACT_SCREEN,
+	HEART_SCREEN,
     MAX_SCREEN,
 };
 

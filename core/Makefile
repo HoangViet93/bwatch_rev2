@@ -6,5 +6,6 @@ OBJS_$(CONFIG_BUTTON) += button.o
 
 OBJS_$(CONFIG_CLOCK) += clock_main.o
 OBJS_$(CONFIG_GYRO) += adxl345.o activity_serv.o activity_main.o
+OBJS_$(CONFIG_HEART_RATE) += heart_serv.o heart_main.o
 
 VPATH += $(BASE_DIR)/core

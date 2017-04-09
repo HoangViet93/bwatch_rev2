@@ -27,6 +27,7 @@ struct font
 extern const uint8_t DejaVu_Sans_Mono7x13[];
 extern const uint8_t Digital_Mono12x24[];
 extern const uint8_t Calibri18x20[];
+extern const uint16_t heartcolor32x32[1024];
 
 uint16_t font_get_str_width(const struct font *pfont, const char *str);
 uint16_t font_get_str_height(uint16_t lcd_x_size, const struct font *pfont, const char *str);

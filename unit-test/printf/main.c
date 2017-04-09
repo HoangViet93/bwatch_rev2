@@ -22,7 +22,7 @@ int main(void)
 	{
 		count++;
 		gpio_toggle(GPIOB, GPIO2);
-		printf("hello-world count=%d\r\n", count);
+		printf("%d\t\n", count);
 		delay(2000000);
 	}
 }

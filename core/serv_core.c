@@ -63,6 +63,7 @@ void serv_init(void)
 static void _clock_setup(void)
 {
 	rcc_periph_clock_enable(RCC_GPIOB);
+	rcc_periph_clock_enable(RCC_ADC1);
 	rcc_periph_clock_enable(RCC_GPIOA);
 	rcc_periph_clock_enable(RCC_SPI2);
     rcc_periph_clock_enable(RCC_I2C2);
