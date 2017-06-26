@@ -78,6 +78,12 @@ button_unregister_event(uint8_t id, void (*pfunc)(uint8_t event))
     return -1;
 }
 
+static int 
+_vietht_func_test(void)
+{
+    printf("%s: %s: %d\n", __FILE__, __func__, __LINE__);
+}
+
 void 
 button_enable(uint32_t id)
 {
